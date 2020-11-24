@@ -8,6 +8,8 @@ import MicIcon from "@material-ui/icons/Mic";
 import "./Chat.css";
 import { useParams } from "react-router-dom";
 import db from "./firebase";
+import firebase from "firebase";
+import { useStateValue } from "./StateProvider";
 
 function Chat() {
   const [input, setInput] = useState("");
@@ -19,6 +21,8 @@ function Chat() {
   const [roomName, setRoomName] = useState("");
 
   const [messages, setMessages] = useState([]);
+
+  const [{ user }, dipatch] = useStateValue();
 
   useEffect(() => {
     if (roomId) {
@@ -43,6 +47,12 @@ function Chat() {
   const sendMessage = (e) => {
     e.preventDefault();
 
+    db.collection("rooms").doc(roomId).collection("messages").add({
+      message: input,
+      name: user.displayName,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
     setInput("");
   };
   return (
@@ -52,7 +62,11 @@ function Chat() {
 
         <div className="chat__headerInfo">
           <h3>{roomName}</h3>
-          <p>Last seen at....</p>
+          <p>
+            {new Date(
+              messages[messages.length - 1]?.timestamp?.toDate()
+            ).toUTCString()}
+          </p>
         </div>
 
         <div className="chat__headerRight">
@@ -72,7 +86,11 @@ function Chat() {
 
       <div className="chat__body">
         {messages.map((message) => (
-          <p className="chat__message">
+          <p
+            className={`chat__message ${
+              message.name === user.displayName && "chat__receiver"
+            }`}
+          >
             <span className="chat__name">{message.name}</span>
             {message.message}
             <span className="chat__timestamp">
@@ -80,12 +98,6 @@ function Chat() {
             </span>
           </p>
         ))}
-
-        <p className={`chat__message ${true && "chat__receiver"}`}>
-          <span className="chat__name">chat name</span>
-          Shut up
-          <span className="chat__timestamp"></span>
-        </p>
       </div>
 
       <div className="chat__footer">
